@@ -1,4 +1,5 @@
 from typing import Annotated
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
@@ -6,6 +7,7 @@ from sqlmodel import Session, select
 from app.api.deps import get_current_user, require_role
 from app.core.database import get_session
 from app.models.product import Product
+from app.models.order import Order, OrderStatus
 from app.models.user import User, UserRole
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
 
@@ -18,9 +20,32 @@ def read_products(
     offset: int = 0,
     limit: Annotated[int, Query(le=100)] = 100,
 ) -> list[Product]:
+    release_expired_orders(session)
     statement = select(Product).where(Product.is_active == True).offset(offset).limit(limit)
     products = session.exec(statement).all()
     return list(products)
+
+def release_expired_orders(session: Session) -> None:
+    now = datetime.now(timezone.utc)
+    statement = select(Order).where(Order.status == OrderStatus.PENDING, Order.expire_at < now).with_for_update()
+    expired_orders = session.exec(statement).all()
+
+    for order in expired_orders:
+        product_ids = [item.product_id for item in order.items]
+        statement = select(Product).where(Product.id.in_(product_ids)).with_for_update()
+        products = session.exec(statement).all()
+        product_map = {p.id: p for p in products}
+
+        for item in order.items:
+            product = product_map.get(item.product_id)
+            if product:
+                product.stock_quantity += item.quantity
+                session.add(product)
+
+        order.status = OrderStatus.EXPIRED
+        session.add(order)
+    
+    session.commit()
 
 
 @router.get("/{id}", response_model=ProductResponse)

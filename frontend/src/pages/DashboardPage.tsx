@@ -11,6 +11,7 @@ const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   ready: ["completed", "cancelled"],
   completed: [],
   cancelled: [],
+  expired: [],
 };
 
 function ProductsTab() {

@@ -1,5 +1,5 @@
 import enum
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
@@ -18,6 +18,7 @@ class OrderStatus(str, enum.Enum):
     READY = "ready"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+    EXPIRED = "expired"
 
 
 class Order(SQLModel, table=True):
@@ -31,6 +32,7 @@ class Order(SQLModel, table=True):
     )
     total_amount: Decimal = Field(sa_column=sa.Column(sa.Numeric(10, 2), nullable=False))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    expire_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=10))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     user: Optional["User"] = Relationship(back_populates="orders")

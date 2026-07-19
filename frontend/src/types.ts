@@ -23,7 +23,8 @@ export type OrderStatus =
   | "preparing"
   | "ready"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "expired";
 
 export interface OrderItem {
   id: number;
