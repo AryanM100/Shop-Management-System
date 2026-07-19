@@ -2,6 +2,7 @@ from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
+from fastapi import Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from pydantic import ValidationError
@@ -12,15 +13,18 @@ from app.core.database import get_session
 from app.models.user import User, UserRole
 from app.schemas.token import TokenPayload
 
-reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl="/auth/login"
-)
-
-
 def get_current_user(
+    request: Request,
     session: Annotated[Session, Depends(get_session)],
-    token: Annotated[str, Depends(reusable_oauth2)],
 ) -> User:
+
+    token = request.cookies.get("access_token")
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+        )
+
     try:
         payload = security.decode_access_token(token)
         token_data = TokenPayload(**payload)
@@ -28,14 +32,12 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     user = session.get(User, token_data.sub)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     return user
 

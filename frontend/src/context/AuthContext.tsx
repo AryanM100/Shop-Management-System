@@ -3,14 +3,14 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
-import client, { setAuthToken, clearAuthToken } from "../api/client";
+import client from "../api/client";
 import type { User } from "../types";
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (
     email: string,
@@ -18,7 +18,7 @@ interface AuthState {
     fullName: string,
     role: "customer" | "shop_owner"
   ) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -26,7 +26,6 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchUser = useCallback(async () => {
@@ -41,14 +40,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const params = new URLSearchParams();
         params.append("username", email);
         params.append("password", password);
-        const res = await client.post<{ access_token: string }>(
+        await client.post<{ access_token: string }>(
           "/auth/login",
           params,
           { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
         );
-        const t = res.data.access_token;
-        setToken(t);
-        setAuthToken(t);
         await fetchUser();
       } finally {
         setLoading(false);
@@ -80,14 +76,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [login]
   );
 
-  const logout = useCallback(() => {
-    setUser(null);
-    setToken(null);
-    clearAuthToken();
+  const logout = useCallback(async () => {
+    try{
+        await client.post("/auth/logout");
+    } catch (error) {
+        console.error("Error logging out from server:", error);
+    } finally {
+        setUser(null);
+    }
   }, []);
 
+  useEffect(() => {
+    async function initializeAuth() {
+        setLoading(true);
+        try {
+            await fetchUser();
+        } catch (error) {
+            
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    initializeAuth();
+  }, [fetchUser]);
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

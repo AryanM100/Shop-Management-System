@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 
@@ -41,6 +42,7 @@ def register(
 
 @router.post("/login", response_model=Token)
 def login(
+    response: Response,
     session: Annotated[Session, Depends(get_session)],
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
@@ -55,11 +57,25 @@ def login(
     access_token = security.create_access_token(
         subject=user.id, role=user.role.value
     )
+
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=60 * 60,
+    )
+
     return Token(
         access_token=access_token,
         token_type="bearer",
     )
 
+@router.post("/logout")
+def logout(response: Response) -> dict[str, str]:
+    response.delete_cookie(key="access_token")
+    return {"detail": "Logged out successfully"}
 
 @router.get("/me", response_model=UserResponse)
 def get_me(
