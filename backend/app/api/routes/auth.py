@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 from app.api.deps import get_current_user
 from app.core import security
 from app.core.database import get_session
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserResponse
 
@@ -32,7 +32,7 @@ def register(
         email=user_in.email,
         hashed_password=security.get_password_hash(user_in.password),
         full_name=user_in.full_name,
-        role=user_in.role,
+        role=UserRole.CUSTOMER,
     )
     session.add(user_create)
     session.commit()

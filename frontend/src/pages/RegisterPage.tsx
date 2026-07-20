@@ -9,7 +9,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"customer" | "shop_owner">("customer");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -18,7 +17,7 @@ export default function RegisterPage() {
     setError("");
     setSubmitting(true);
     try {
-      await register(email, password, fullName, role);
+      await register(email, password, fullName);
       navigate("/");
     } catch (err) {
       if (err instanceof AxiosError) {
@@ -69,17 +68,6 @@ export default function RegisterPage() {
             required
             className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Role</label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as "customer" | "shop_owner")}
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-          >
-            <option value="customer">Customer</option>
-            <option value="shop_owner">Shop Owner</option>
-          </select>
         </div>
         <button
           type="submit"

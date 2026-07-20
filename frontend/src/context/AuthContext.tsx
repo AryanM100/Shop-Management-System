@@ -16,7 +16,6 @@ interface AuthState {
     email: string,
     password: string,
     fullName: string,
-    role: "customer" | "shop_owner"
   ) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -58,7 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: string,
       password: string,
       fullName: string,
-      role: "customer" | "shop_owner"
     ) => {
       setLoading(true);
       try {
@@ -66,7 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email,
           password,
           full_name: fullName,
-          role,
         });
         await login(email, password);
       } finally {
