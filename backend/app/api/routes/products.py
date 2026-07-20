@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
-from app.api.deps import get_current_user, require_role
+from app.api.deps import get_current_user, get_current_user_optional, require_role
 from app.core.database import get_session
 from app.models.product import Product
 from app.models.order import Order, OrderStatus
@@ -19,9 +19,17 @@ def read_products(
     session: Annotated[Session, Depends(get_session)],
     offset: int = 0,
     limit: Annotated[int, Query(le=100)] = 100,
+    include_inactive: bool = False,
+    current_user: Annotated[User | None, Depends(get_current_user_optional)] = None,
 ) -> list[Product]:
+    if include_inactive:
+        if current_user is None or current_user.role != UserRole.SHOP_OWNER:
+            raise HTTPException(status_code=403, detail="Not enough permissions")
     release_expired_orders(session)
-    statement = select(Product).where(Product.is_active == True).offset(offset).limit(limit)
+    statement = select(Product)
+    if not include_inactive:
+        statement = statement.where(Product.is_active == True)
+    statement = statement.offset(offset).limit(limit)
     products = session.exec(statement).all()
     return list(products)
 

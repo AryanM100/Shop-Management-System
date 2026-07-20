@@ -42,6 +42,21 @@ def get_current_user(
     return user
 
 
+def get_current_user_optional(
+    request: Request,
+    session: Annotated[Session, Depends(get_session)],
+) -> User | None:
+    token = request.cookies.get("access_token")
+    if token is None:
+        return None
+    try:
+        payload = security.decode_access_token(token)
+        token_data = TokenPayload(**payload)
+    except (JWTError, ValidationError):
+        return None
+    return session.get(User, token_data.sub)
+
+
 def require_role(role: UserRole) -> Callable[[User], User]:
     def role_dependency(current_user: Annotated[User, Depends(get_current_user)]) -> User:
         if current_user.role != role:

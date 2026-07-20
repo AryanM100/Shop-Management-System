@@ -27,13 +27,21 @@ function ProductsTab() {
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editStock, setEditStock] = useState("");
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    description: "",
+    price: "",
+    stockQuantity: "",
+    imageUrl: "",
+  });
+  const [editError, setEditError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchProducts = () => {
     setLoading(true);
     client
-      .get<Product[]>("/products/")
+      .get<Product[]>("/products/?include_inactive=true")
       .then((res) => setProducts(res.data))
       .catch(() => setError("Failed to load products"))
       .finally(() => setLoading(false));
@@ -72,12 +80,56 @@ function ProductsTab() {
     }
   };
 
-  const handleStockSave = async (productId: number) => {
+  const startEditing = (p: Product) => {
+    setEditingProductId(p.id);
+    setEditForm({
+      name: p.name,
+      description: p.description,
+      price: String(p.price),
+      stockQuantity: String(p.stock_quantity),
+      imageUrl: p.image_url || "",
+    });
+    setEditError("");
+  };
+
+  const handleEditSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!editingProductId) return;
+    setEditError("");
+    setIsSaving(true);
     try {
-      await client.patch(`/products/${productId}`, {
-        stock_quantity: Number(editStock),
+      await client.patch(`/products/${editingProductId}`, {
+        name: editForm.name,
+        description: editForm.description,
+        price: Number(editForm.price),
+        stock_quantity: Number(editForm.stockQuantity),
+        image_url: editForm.imageUrl || null,
       });
-      setEditingId(null);
+      setEditingProductId(null);
+      fetchProducts();
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        setEditError(err.response?.data?.detail || "Failed to update product");
+      } else {
+        setEditError("Failed to update product");
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeactivate = async (productId: number) => {
+    try {
+      await client.delete(`/products/${productId}`);
+      fetchProducts();
+    } catch {
+      // leave inline for simplicity
+    }
+  };
+
+  const handleReactivate = async (productId: number) => {
+    try {
+      await client.patch(`/products/${productId}`, { is_active: true });
       fetchProducts();
     } catch {
       // leave inline for simplicity
@@ -89,25 +141,25 @@ function ProductsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <h3 className="font-semibold mb-3">Add Product</h3>
+      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <h3 className="font-semibold mb-3 text-gray-800">Add Product</h3>
         {createError && (
           <p className="text-red-600 text-sm mb-2">{createError}</p>
         )}
-        <form onSubmit={handleCreate} className="grid grid-cols-2 gap-3">
+        <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <input
             placeholder="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="border border-gray-300 rounded px-3 py-2 text-sm"
+            className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
-            className="border border-gray-300 rounded px-3 py-2 text-sm"
+            className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             placeholder="Price"
@@ -116,7 +168,7 @@ function ProductsTab() {
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             required
-            className="border border-gray-300 rounded px-3 py-2 text-sm"
+            className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             placeholder="Stock Quantity"
@@ -124,87 +176,171 @@ function ProductsTab() {
             value={stockQuantity}
             onChange={(e) => setStockQuantity(e.target.value)}
             required
-            className="border border-gray-300 rounded px-3 py-2 text-sm"
+            className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             placeholder="Image URL (optional)"
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
-            className="border border-gray-300 rounded px-3 py-2 text-sm col-span-2"
+            className="border border-gray-300 rounded px-3 py-2 text-sm md:col-span-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             type="submit"
             disabled={creating}
-            className="col-span-2 bg-blue-600 text-white py-2 rounded font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="md:col-span-2 bg-blue-600 text-white py-2 rounded font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {creating ? "Adding..." : "Add Product"}
           </button>
         </form>
       </div>
 
-      <table className="w-full text-sm bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="text-left p-3">Name</th>
-            <th className="text-left p-3">Price</th>
-            <th className="text-left p-3">Stock</th>
-            <th className="text-left p-3">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((p) => (
-            <tr key={p.id} className="border-t border-gray-100">
-              <td className="p-3">{p.name}</td>
-              <td className="p-3">${Number(p.price).toFixed(2)}</td>
-              <td className="p-3">
-                {editingId === p.id ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={editStock}
-                      onChange={(e) => setEditStock(e.target.value)}
-                      className="w-20 border border-gray-300 rounded px-2 py-1 text-sm"
-                    />
-                    <button
-                      onClick={() => handleStockSave(p.id)}
-                      className="text-blue-600 text-xs font-medium"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="text-gray-400 text-xs"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <span
-                    className="cursor-pointer hover:text-blue-600"
-                    onClick={() => {
-                      setEditingId(p.id);
-                      setEditStock(String(p.stock_quantity));
-                    }}
-                  >
-                    {p.stock_quantity}
-                  </span>
-                )}
-              </td>
-              <td className="p-3">
-                {p.is_active ? (
-                  <span className="text-green-600 text-xs font-medium">
-                    Active
-                  </span>
-                ) : (
-                  <span className="text-gray-400 text-xs font-medium">
-                    Inactive
-                  </span>
-                )}
-              </td>
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="text-left p-3 font-semibold text-gray-700">Product</th>
+              <th className="text-left p-3 font-semibold text-gray-700">Price</th>
+              <th className="text-left p-3 font-semibold text-gray-700">Stock</th>
+              <th className="text-left p-3 font-semibold text-gray-700">Status</th>
+              <th className="text-right p-3 font-semibold text-gray-700">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {products.map((p) => (
+              editingProductId === p.id ? (
+                <tr key={p.id}>
+                  <td colSpan={5} className="p-4 bg-gray-50">
+                    <div className="max-w-2xl">
+                      <h4 className="font-semibold mb-3 text-sm text-gray-800">Edit Product</h4>
+                      {editError && (
+                        <p className="text-red-600 text-xs mb-2">{editError}</p>
+                      )}
+                      <form onSubmit={handleEditSubmit} className="grid grid-cols-2 gap-3">
+                        <input
+                          placeholder="Name"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                          required
+                          className="border border-gray-300 rounded px-2 py-1.5 text-sm col-span-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                        <input
+                          placeholder="Description"
+                          value={editForm.description}
+                          onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                          required
+                          className="border border-gray-300 rounded px-2 py-1.5 text-sm col-span-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                        <input
+                          placeholder="Price"
+                          type="number"
+                          step="0.01"
+                          value={editForm.price}
+                          onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                          required
+                          className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                        <input
+                          placeholder="Stock"
+                          type="number"
+                          value={editForm.stockQuantity}
+                          onChange={(e) => setEditForm({ ...editForm, stockQuantity: e.target.value })}
+                          required
+                          className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                        <input
+                          placeholder="Image URL (optional)"
+                          value={editForm.imageUrl}
+                          onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
+                          className="border border-gray-300 rounded px-2 py-1.5 text-sm col-span-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                        <div className="col-span-2 flex gap-2 pt-2">
+                          <button
+                            type="submit"
+                            disabled={isSaving}
+                            className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                          >
+                            {isSaving ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingProductId(null)}
+                            disabled={isSaving}
+                            className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded text-sm font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                <tr key={p.id} className={`hover:bg-gray-50 transition-colors ${!p.is_active ? 'bg-gray-50/50' : ''}`}>
+                  <td className="p-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 bg-gray-100 rounded shrink-0 overflow-hidden relative border border-gray-200 ${!p.is_active ? 'opacity-60 grayscale' : ''}`}>
+                        {p.image_url ? (
+                          <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className={`font-semibold truncate ${!p.is_active ? 'text-gray-500 line-through' : 'text-gray-900'}`} title={p.name}>
+                          {p.name}
+                        </div>
+                        <div className={`text-xs truncate ${!p.is_active ? 'text-gray-400' : 'text-gray-500'}`} title={p.description}>
+                          {p.description}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-3 align-middle font-medium text-gray-900">
+                    ${Number(p.price).toFixed(2)}
+                  </td>
+                  <td className="p-3 align-middle text-gray-500">
+                    {p.stock_quantity}
+                  </td>
+                  <td className="p-3 align-middle">
+                    <span className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full ${p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                      {p.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                  <td className="p-3 align-middle text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => startEditing(p)}
+                        className="px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                      >
+                        Edit
+                      </button>
+                      {p.is_active ? (
+                        <button
+                          onClick={() => handleDeactivate(p.id)}
+                          className="px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded transition-colors"
+                        >
+                          Deactivate
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleReactivate(p.id)}
+                          className="px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded transition-colors"
+                        >
+                          Reactivate
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
