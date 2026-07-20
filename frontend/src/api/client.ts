@@ -1,9 +1,7 @@
 import axios from "axios";
-
-// In dev, Vite's proxy forwards /auth, /products, /orders to the backend.
-// In production, set VITE_API_URL to the backend origin.
+// All API calls go through /api, proxied to the backend in dev via vite.config.ts.
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "",
+  baseURL: (import.meta.env.VITE_API_URL || "") + "/api",
   withCredentials: true,
 });
 
