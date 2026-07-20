@@ -166,6 +166,19 @@ def update_order_status(
             detail=f"Invalid transition from {order.status.value}. Allowed: {allowed}"
         )
 
+    
+    if status_update.status == OrderStatus.CANCELLED:
+        product_ids = [item.product_id for item in order.items]
+        statement = select(Product).where(Product.id.in_(product_ids)).with_for_update()
+        products = session.exec(statement).all()
+        product_map = {p.id: p for p in products}
+
+        for item in order.items:
+            product = product_map.get(item.product_id)
+            if product:
+                product.stock_quantity += item.quantity
+                session.add(product)
+
     order.status = status_update.status
     session.add(order)
     session.commit()
