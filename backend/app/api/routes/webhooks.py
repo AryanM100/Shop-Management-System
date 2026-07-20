@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from sqlmodel import Session
-import stripe
+import razorpay
 
 from app.core.config import settings
 from app.core.database import get_session
@@ -9,28 +9,31 @@ from app.models.order import Order, OrderStatus
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
+razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
-@router.post("/stripe")
-async def stripe_webhook(
+
+@router.post("/razorpay")
+async def razorpay_webhook(
     request: Request,
-    stripe_signature: Annotated[str, Header()],
+    x_razorpay_signature: Annotated[str, Header()],
     session: Annotated[Session, Depends(get_session)],
 ):
     payload = await request.body()
-    
+
     try:
-        event = stripe.Webhook.construct_event(
-            payload, stripe_signature, settings.STRIPE_WEBHOOK_SECRET
+        razorpay_client.utility.verify_webhook_signature(
+            payload.decode("utf-8"),
+            x_razorpay_signature,
+            settings.RAZORPAY_WEBHOOK_SECRET,
         )
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.SignatureVerificationError:
+    except razorpay.errors.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid signature")
 
-    if event["type"] == "payment_intent.succeeded":
-        payment_intent = event["data"]["object"]
-        order_id = payment_intent.get("metadata", {}).get("order_id")
-        
+    event = await request.json()
+
+    if event.get("event") == "payment.captured":
+        payment = event["payload"]["payment"]["entity"]
+        order_id = payment.get("notes", {}).get("order_id")
         if order_id:
             order = session.get(Order, int(order_id))
             if order and order.status == OrderStatus.PENDING:

@@ -300,7 +300,7 @@ function ProductsTab() {
                     </div>
                   </td>
                   <td className="p-3 align-middle font-medium text-gray-900">
-                    ${Number(p.price).toFixed(2)}
+                    ₹{Number(p.price).toFixed(2)}
                   </td>
                   <td className="p-3 align-middle text-gray-500">
                     {p.stock_quantity}
@@ -429,7 +429,7 @@ function OrdersTab() {
                   <td className="p-3">#{order.id}</td>
                   <td className="p-3">User #{order.user_id}</td>
                   <td className="p-3">
-                    ${Number(order.total_amount).toFixed(2)}
+                    ₹{Number(order.total_amount).toFixed(2)}
                   </td>
                   <td className="p-3">
                     <OrderStatusBadge status={order.status} />

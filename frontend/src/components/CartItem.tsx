@@ -19,7 +19,7 @@ export default function CartItem({ entry, flagged }: Props) {
       <div className="flex-1">
         <p className="font-medium">{entry.product.name}</p>
         <p className="text-sm text-gray-500">
-          ${Number(entry.product.price).toFixed(2)} each
+          ₹{Number(entry.product.price).toFixed(2)} each
         </p>
         {flagged && (
           <p className="text-sm text-red-600 font-medium mt-1">
@@ -43,7 +43,7 @@ export default function CartItem({ entry, flagged }: Props) {
         </button>
       </div>
       <span className="w-20 text-right font-medium">
-        ${lineTotal.toFixed(2)}
+        ₹{lineTotal.toFixed(2)}
       </span>
       <button
         onClick={() => removeFromCart(entry.product.id)}

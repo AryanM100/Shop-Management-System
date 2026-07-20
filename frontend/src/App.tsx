@@ -9,6 +9,7 @@ import ProductsPage from "./pages/ProductsPage";
 import CartPage from "./pages/CartPage";
 import OrdersPage from "./pages/OrdersPage";
 import DashboardPage from "./pages/DashboardPage";
+import NotFoundPage from "./pages/NotFoundPage"
 
 export default function App() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
                 }
               />
             </Route>
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </CartProvider>
       </AuthProvider>

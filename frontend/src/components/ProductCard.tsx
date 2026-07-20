@@ -31,7 +31,7 @@ export default function ProductCard({ product }: Props) {
       
       <div className="mt-auto border-t border-gray-100 pt-3">
         <div className="flex justify-between items-center mb-3">
-          <span className="font-bold text-xl">${Number(product.price).toFixed(2)}</span>
+          <span className="font-bold text-xl">₹{Number(product.price).toFixed(2)}</span>
           {!outOfStock && (
             <span className="text-xs text-gray-400">
               {product.stock_quantity} in stock

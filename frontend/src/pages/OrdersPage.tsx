@@ -48,7 +48,7 @@ export default function OrdersPage() {
               </div>
               <div className="flex items-center gap-4">
                 <span className="font-medium">
-                  ${Number(order.total_amount).toFixed(2)}
+                  ₹{Number(order.total_amount).toFixed(2)}
                 </span>
                 <span className="text-sm text-gray-400">
                   {new Date(order.created_at).toLocaleDateString()}
@@ -74,7 +74,7 @@ export default function OrdersPage() {
                         </td>
                         <td className="py-1">{item.quantity}</td>
                         <td className="py-1">
-                          ${Number(item.unit_price_at_purchase).toFixed(2)}
+                          ₹{Number(item.unit_price_at_purchase).toFixed(2)}
                         </td>
                         <td className="py-1 text-right">
                           $

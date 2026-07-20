@@ -1,4 +1,4 @@
-import stripe
+import razorpay
 import threading
 from decimal import Decimal
 from typing import Annotated
@@ -16,10 +16,13 @@ from app.models.product import Product
 from app.models.user import User, UserRole
 from app.schemas.order import OrderCreate, OrderResponse, OrderStatusUpdate
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
+razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
-class PaymentIntentResponse(BaseModel):
-    client_secret: str
+class RazorpayOrderResponse(BaseModel):
+    id: str
+    amount: int
+    currency: str
+    razorpay_key_id: str 
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -186,12 +189,12 @@ def update_order_status(
     return order
 
 
-@router.post("/{id}/create-payment-intent", response_model=PaymentIntentResponse)
+@router.post("/{id}/create-payment-intent", response_model=RazorpayOrderResponse)
 def create_payment_intent(
     id: int,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(require_role(UserRole.CUSTOMER))],
-) -> PaymentIntentResponse:
+) -> RazorpayOrderResponse:
     order = session.get(Order, id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -202,15 +205,22 @@ def create_payment_intent(
     if order.status != OrderStatus.PENDING:
         raise HTTPException(status_code=400, detail="Only pending orders can be paid for")
 
-    amount_in_cents = int(order.total_amount * 100)
+    amount_in_paise = int(order.total_amount * 100)
     
     try:
-        intent = stripe.PaymentIntent.create(
-            amount=amount_in_cents,
-            currency="usd",
-            metadata={"order_id": str(order.id)},
+        intent = razorpay_client.order.create(
+            {
+                "amount": amount_in_paise,
+                "currency": "INR",
+                "notes": {"order_id": str(order.id)},
+            }
         )
-        return PaymentIntentResponse(client_secret=intent.client_secret)
+        return RazorpayOrderResponse(
+            id=intent["id"],
+            amount=intent["amount"],
+            currency=intent["currency"],
+            razorpay_key_id=settings.RAZORPAY_KEY_ID,
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
