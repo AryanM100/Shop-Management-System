@@ -8,7 +8,16 @@ from app.core.database import get_session
 from app.schemas.health import HealthResponse
 from app.api.routes import auth, orders, products, webhooks
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from app.core.limiter import limiter
+
 app = FastAPI(title="Shop API")
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Add CORS middleware for frontend communication
 app.add_middleware(

@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi import Response
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import Request
 from sqlmodel import Session, select
 
 from app.api.deps import get_current_user
@@ -11,12 +12,15 @@ from app.core.database import get_session
 from app.models.user import User, UserRole
 from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserResponse
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserResponse)
+@limiter.limit("5/minute")
 def register(
+    request: Request,
     *,
     session: Annotated[Session, Depends(get_session)],
     user_in: UserCreate,
@@ -41,7 +45,9 @@ def register(
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 def login(
+    request: Request,
     response: Response,
     session: Annotated[Session, Depends(get_session)],
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
