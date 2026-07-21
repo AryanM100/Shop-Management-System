@@ -2,6 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from sqlmodel import Session
 import razorpay
+import logging
 
 from app.core.config import settings
 from app.core.database import get_session
@@ -11,6 +12,7 @@ router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
+logger = logging.getLogger(__name__)
 
 @router.post("/razorpay")
 async def razorpay_webhook(
@@ -19,6 +21,7 @@ async def razorpay_webhook(
     session: Annotated[Session, Depends(get_session)],
 ):
     payload = await request.body()
+    logger.info("Razorpay webhook received")
 
     try:
         razorpay_client.utility.verify_webhook_signature(
@@ -27,6 +30,7 @@ async def razorpay_webhook(
             settings.RAZORPAY_WEBHOOK_SECRET,
         )
     except razorpay.errors.SignatureVerificationError:
+        logger.warning("Razorpay webhook signature verification failed")
         raise HTTPException(status_code=400, detail="Invalid signature")
 
     event = await request.json()
@@ -40,5 +44,6 @@ async def razorpay_webhook(
                 order.status = OrderStatus.CONFIRMED
                 session.add(order)
                 session.commit()
+                logger.info(f"Order {order_id} confirmed via Razorpay webhook")
 
     return {"status": "success"}

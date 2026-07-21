@@ -5,6 +5,7 @@ from fastapi import Response
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import Request
 from sqlmodel import Session, select
+import logging
 
 from app.api.deps import get_current_user
 from app.core import security
@@ -15,6 +16,7 @@ from app.schemas.user import UserCreate, UserResponse
 from app.core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/register", response_model=UserResponse)
@@ -28,6 +30,7 @@ def register(
     statement = select(User).where(User.email == user_in.email)
     user = session.exec(statement).first()
     if user:
+        logger.warning(f"Registration attempt with existing email: {user_in.email}")
         raise HTTPException(
             status_code=400,
             detail="The user with this email already exists in the system.",
@@ -41,6 +44,7 @@ def register(
     session.add(user_create)
     session.commit()
     session.refresh(user_create)
+    logger.info(f"New user registered with email: {user_in.email}")
     return user_create
 
 
@@ -55,6 +59,7 @@ def login(
     statement = select(User).where(User.email == form_data.username)
     user = session.exec(statement).first()
     if not user or not security.verify_password(form_data.password, user.hashed_password):
+        logger.warning(f"Failed login attempt for email: {form_data.username}")
         raise HTTPException(
             status_code=400,
             detail="Incorrect email or password",

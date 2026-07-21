@@ -7,11 +7,14 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from pydantic import ValidationError
 from sqlmodel import Session
+import logging
 
 from app.core import security
 from app.core.database import get_session
 from app.models.user import User, UserRole
 from app.schemas.token import TokenPayload
+
+logger = logging.getLogger(__name__)
 
 def get_current_user(
     request: Request,
@@ -60,6 +63,7 @@ def get_current_user_optional(
 def require_role(role: UserRole) -> Callable[[User], User]:
     def role_dependency(current_user: Annotated[User, Depends(get_current_user)]) -> User:
         if current_user.role != role:
+            logger.warning(f"Permission denied: user {current_user.id} ({current_user.role.value}) attempted an action requiring {role.value}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not enough permissions",

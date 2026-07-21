@@ -77,7 +77,7 @@ export default function OrdersPage() {
                           ₹{Number(item.unit_price_at_purchase).toFixed(2)}
                         </td>
                         <td className="py-1 text-right">
-                          $
+                          ₹
                           {(
                             Number(item.unit_price_at_purchase) * item.quantity
                           ).toFixed(2)}

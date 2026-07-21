@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
+import logging
 
 from app.core.config import settings
 from app.api.deps import get_current_user, require_role
@@ -25,6 +26,7 @@ class RazorpayOrderResponse(BaseModel):
     razorpay_key_id: str 
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+logger = logging.getLogger(__name__)
 
 _sqlite_lock = threading.Lock()
 
@@ -65,6 +67,7 @@ def create_order(
                 )
     
             if product.stock_quantity < item.quantity:
+                logger.info(f"Order rejected: insufficient stock for product {product.id} (requested {item.quantity}, available {product.stock_quantity})")
                 raise HTTPException(
                     status_code=400, detail=f"Out of stock for product {product.name}"
                 )
