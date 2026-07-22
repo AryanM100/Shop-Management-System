@@ -37,6 +37,11 @@ export interface OrderItem {
 export interface Order {
   id: number;
   user_id: number;
+  user: {
+    id: number,
+    full_name: string,
+    email: string,
+  } | null;
   status: OrderStatus;
   total_amount: number;
   created_at: string;

@@ -24,10 +24,17 @@ class OrderItemResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class OrderCustomerResponse(BaseModel):
+    id: int
+    full_name: str
+    email: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 class OrderResponse(BaseModel):
     id: int
     user_id: int
+    user: OrderCustomerResponse | None = None
     status: OrderStatus
     total_amount: Decimal
     created_at: datetime

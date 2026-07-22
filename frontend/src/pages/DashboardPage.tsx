@@ -352,6 +352,7 @@ function OrdersTab() {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [updateError, setUpdateError] = useState("");
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const fetchOrders = () => {
     setLoading(true);
@@ -409,58 +410,86 @@ function OrdersTab() {
         <p className="text-red-600 text-sm">{updateError}</p>
       )}
       {orders.length === 0 ? (
-        <p className="text-gray-500">No orders found.</p>
+      <p className="text-gray-500">No orders found.</p>
       ) : (
-        <table className="w-full text-sm bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left p-3">Order</th>
-              <th className="text-left p-3">Customer</th>
-              <th className="text-left p-3">Total</th>
-              <th className="text-left p-3">Status</th>
-              <th className="text-left p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order) => {
-              const transitions = VALID_TRANSITIONS[order.status];
-              return (
-                <tr key={order.id} className="border-t border-gray-100">
-                  <td className="p-3">#{order.id}</td>
-                  <td className="p-3">User #{order.user_id}</td>
-                  <td className="p-3">
-                    ₹{Number(order.total_amount).toFixed(2)}
-                  </td>
-                  <td className="p-3">
+        <div className="space-y-3">
+            {orders.map((order) => (
+            <div key={order.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                <div
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => setExpandedId(expandedId == order.id ? null : order.id)}
+                >
+                <div className="flex items-center gap-4">
+                    <span className="font-medium">Order #{order.id}</span>
                     <OrderStatusBadge status={order.status} />
-                  </td>
-                  <td className="p-3">
-                    {transitions.length > 0 ? (
-                      <div className="flex gap-1">
+                </div>
+                <div className="text-sm text-gray-500">
+                    {order.user?.full_name || `User #${order.user_id}`} ({order.user?.email})
+                    <span className="text-gray-400 ml-2">
+                        {new Date(order.created_at + "Z").toLocaleString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        })}
+                    </span>
+                </div>
+                <span className="font-medium">₹{Number(order.total_amount).toFixed(2)}</span>
+                </div>
+                
+                {expandedId == order.id && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                    <table className="w-full text-sm">
+                        <thead>
+                        <tr className="text-left text-gray-500">
+                            <th className="pb-2">Product</th>
+                            <th className="pb-2">Qty</th>
+                            <th className="pb-2">Unit Price</th>
+                            <th className="pb-2 text-right">Subtotal</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {order.items.map((item) => (
+                            <tr key={item.id} className="border-t border-gray-50">
+                            <td className="py-1">{item.product?.name || `Product #${item.product_id}`}</td>
+                            <td className="py-1">{item.quantity}</td>
+                            <td className="py-1">₹{Number(item.unit_price_at_purchase).toFixed(2)}</td>
+                            <td className="py-1 text-right">
+                                ₹{(Number(item.unit_price_at_purchase) * item.quantity).toFixed(2)}
+                            </td>
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
+                    </div>
+                )}
+        
+                    {(() => {
+                    const transitions = VALID_TRANSITIONS[order.status];
+                    return transitions.length > 0 ? (
+                        <div className="flex gap-1 mt-3 pt-3 border-t border-gray-100">
                         {transitions.map((t) => (
-                          <button
+                            <button
                             key={t}
                             onClick={() => handleTransition(order.id, t)}
                             disabled={updatingId === order.id}
                             className={`px-2 py-1 rounded text-xs font-medium ${
-                              t === "cancelled"
+                                t === "cancelled"
                                 ? "bg-red-50 text-red-700 hover:bg-red-100"
                                 : "bg-blue-50 text-blue-700 hover:bg-blue-100"
                             } disabled:opacity-50`}
-                          >
+                            >
                             {t}
-                          </button>
+                            </button>
                         ))}
-                      </div>
+                        </div>
                     ) : (
-                      <span className="text-gray-400 text-xs">No actions</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                        <p className="text-gray-400 text-xs mt-2">No actions available</p>
+                    );
+                    })()}
+                </div>
+                ))}
+            </div>
       )}
     </div>
   );
