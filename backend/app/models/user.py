@@ -22,6 +22,9 @@ class User(SQLModel, table=True):
     hashed_password: str
     full_name: str
     role: UserRole = Field(sa_column=sa.Column(sa.Enum(UserRole), nullable=False))
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    created_at: datetime = Field(
+    default_factory=lambda: datetime.now(timezone.utc),
+    sa_column=sa.Column(sa.DateTime(timezone=True)))
 
     orders: list["Order"] = Relationship(back_populates="user")

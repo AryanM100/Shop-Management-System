@@ -426,7 +426,7 @@ function OrdersTab() {
                 <div className="text-sm text-gray-500">
                     {order.user?.full_name || `User #${order.user_id}`} ({order.user?.email})
                     <span className="text-gray-400 ml-2">
-                        {new Date(order.created_at + "Z").toLocaleString('en-IN', {
+                        {new Date(order.created_at).toLocaleString('en-IN', {
                             day: 'numeric',
                             month: 'short',
                             hour: '2-digit',

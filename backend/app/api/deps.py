@@ -30,6 +30,12 @@ def get_current_user(
 
     try:
         payload = security.decode_access_token(token)
+        if payload.get("type") != "access":
+            logger.warning("Auth failed: Provided token is not an access token.")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+            )
         token_data = TokenPayload(**payload)
     except (JWTError, ValidationError):
         raise HTTPException(

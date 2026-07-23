@@ -31,9 +31,18 @@ class Order(SQLModel, table=True):
         sa_column=sa.Column(sa.Enum(OrderStatus), nullable=False, default=OrderStatus.PENDING),
     )
     total_amount: Decimal = Field(sa_column=sa.Column(sa.Numeric(10, 2), nullable=False))
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    expire_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=10))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=sa.Column(sa.DateTime(timezone=True)))
+
+    expire_at: datetime = Field(
+    default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=10),
+    sa_column=sa.Column(sa.DateTime(timezone=True)))
+
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=sa.Column(sa.DateTime(timezone=True)))
 
     user: Optional["User"] = Relationship(back_populates="orders")
     items: list["OrderItem"] = Relationship(back_populates="order")

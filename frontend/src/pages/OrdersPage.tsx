@@ -51,7 +51,7 @@ export default function OrdersPage() {
                   ₹{Number(order.total_amount).toFixed(2)}
                 </span>
                 <span className="text-sm text-gray-400">
-                  {new Date(order.created_at + "Z").toLocaleString('en-IN', {
+                  {new Date(order.created_at).toLocaleString('en-IN', {
                     day: 'numeric',
                     month: 'short',
                     hour: '2-digit',
