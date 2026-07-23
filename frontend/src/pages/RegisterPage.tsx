@@ -11,12 +11,18 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setSubmitting(true);
     try {
+      if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      setSubmitting(false);
+      return;
+      }
       await register(email, password, fullName);
       navigate("/");
     } catch (err) {
@@ -69,6 +75,16 @@ export default function RegisterPage() {
             className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
           />
         </div>
+        <div>
+            <label className="block text-sm font-medium mb-1">Confirm Password</label>
+            <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+            />
+            </div>
         <button
           type="submit"
           disabled={submitting}
