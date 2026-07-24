@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-to-a-real-secret-key"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    ENVIRONMENT: str = "development"
+    ENVIRONMENT: str = "production"
     FRONTEND_URL: str = "http://localhost:5173"
 
     # Razorpay

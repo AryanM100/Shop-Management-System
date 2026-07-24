@@ -103,7 +103,7 @@ def login(
         value=access_token,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=True,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
@@ -112,7 +112,7 @@ def login(
         value=refresh_token,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=True,
         path="/api/auth/refresh",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
@@ -211,7 +211,7 @@ def refresh(request: Request, response: Response, session: Annotated[Session, De
         value=new_access_token,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=True,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
@@ -220,7 +220,7 @@ def refresh(request: Request, response: Response, session: Annotated[Session, De
         value=new_refresh_token,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=True,
         path="/api/auth/refresh",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
