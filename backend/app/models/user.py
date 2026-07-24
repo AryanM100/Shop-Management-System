@@ -16,9 +16,12 @@ class UserRole(str, enum.Enum):
 
 class User(SQLModel, table=True):
     __tablename__ = "users"
+    __table_args__ = (
+        sa.CheckConstraint("email IS NOT NULL or phone_number IS NOT NULL", name="ck_users_email_or_phone_required"),)
 
     id: int | None = Field(default=None, primary_key=True)
-    email: str = Field(unique=True, index=True)
+    email: str | None = Field(default=None, unique=True, index=True)
+    phone_number: str | None = Field(default=None, unique=True, index=True)
     hashed_password: str
     full_name: str
     role: UserRole = Field(sa_column=sa.Column(sa.Enum(UserRole), nullable=False))

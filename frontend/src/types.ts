@@ -1,6 +1,7 @@
 export interface User {
   id: number;
-  email: string;
+  email: string | null;
+  phone_number: string | null;
   full_name: string;
   role: "customer" | "shop_owner";
 }
@@ -40,7 +41,8 @@ export interface Order {
   user: {
     id: number,
     full_name: string,
-    email: string,
+    email: string | null,
+    phone_number: string | null,
   } | null;
   status: OrderStatus;
   total_amount: number;

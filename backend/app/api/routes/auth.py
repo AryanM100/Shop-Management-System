@@ -33,16 +33,24 @@ def register(
     session: Annotated[Session, Depends(get_session)],
     user_in: UserCreate,
 ) -> UserResponse:
-    statement = select(User).where(User.email == user_in.email)
-    user = session.exec(statement).first()
-    if user:
-        logger.warning(f"Registration attempt with existing email: {user_in.email}")
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this email already exists in the system.",
-        )
+
+    if user_in.email:
+        statement = select(User).where(User.email == user_in.email)
+        user = session.exec(statement).first()
+        if user:
+            logger.warning(f"Registration attempt with existing email: {user_in.email}")
+            raise HTTPException(status_code=400, detail="The user with this email already exists in the system.")
+
+    elif user_in.phone_number:
+        statement = select(User).where(User.phone_number == user_in.phone_number)
+        user = session.exec(statement).first()
+        if user:
+            logger.warning(f"Registration attempt with existing phone number: {user_in.phone_number}")
+            raise HTTPException(status_code=400, detail="The user with this phone number already exists in the system.")
+
     user_create = User(
         email=user_in.email,
+        phone_number=user_in.phone_number,
         hashed_password=security.get_password_hash(user_in.password),
         full_name=user_in.full_name,
         role=UserRole.CUSTOMER,
@@ -50,7 +58,7 @@ def register(
     session.add(user_create)
     session.commit()
     session.refresh(user_create)
-    logger.info(f"New user registered with email: {user_in.email}")
+    logger.info(f"New user registered with email / phone number: {user_in.email} {user_in.phone_number}")
     return user_create
 
 
@@ -62,13 +70,13 @@ def login(
     session: Annotated[Session, Depends(get_session)],
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
-    statement = select(User).where(User.email == form_data.username)
+    statement = select(User).where((User.email == form_data.username) | (User.phone_number == form_data.username))
     user = session.exec(statement).first()
     if not user or not security.verify_password(form_data.password, user.hashed_password):
-        logger.warning(f"Failed login attempt for email: {form_data.username}")
+        logger.warning(f"Failed login attempt for email / phone number: {form_data.username}")
         raise HTTPException(
             status_code=400,
-            detail="Incorrect email or password",
+            detail="Incorrect Email / Phone Number or Password",
         )
     
     access_token = security.create_access_token(

@@ -6,7 +6,7 @@ import { AxiosError } from "axios";
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
@@ -23,7 +23,10 @@ export default function RegisterPage() {
       setSubmitting(false);
       return;
       }
-      await register(email, password, fullName);
+      const isEmail = emailOrPhone.includes("@");
+      const email = isEmail ? emailOrPhone : undefined;
+      const phoneNumber = isEmail ? undefined : emailOrPhone;
+      await register(password, fullName, email, phoneNumber);
       navigate("/");
     } catch (err) {
       if (err instanceof AxiosError) {
@@ -56,11 +59,11 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
+          <label className="block text-sm font-medium mb-1">Email or Phone Number</label>
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={emailOrPhone}
+            onChange={(e) => setEmailOrPhone(e.target.value)}
             required
             className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
           />

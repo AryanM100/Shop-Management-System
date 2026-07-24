@@ -42,7 +42,7 @@ export default function Layout() {
           <div className="flex items-center gap-4">
             {user ? (
               <>
-                <span className="text-sm text-gray-500">{user.full_name} ({user.email})</span>
+                <span className="text-sm text-gray-500">{user.full_name} ({user.email || user.phone_number})</span>
                 <button
                   onClick={handleLogout}
                   className="text-sm text-gray-600 hover:text-gray-900"

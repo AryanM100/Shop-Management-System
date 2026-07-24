@@ -11,11 +11,12 @@ import type { User } from "../types";
 
 interface AuthState {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (emailOrPhone: string, password: string) => Promise<void>;
   register: (
-    email: string,
     password: string,
     fullName: string,
+    email?: string,
+    phoneNumber?: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -33,11 +34,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (emailOrPhone: string, password: string) => {
       setLoading(true);
       try {
         const params = new URLSearchParams();
-        params.append("username", email);
+        params.append("username", emailOrPhone);
         params.append("password", password);
         await client.post<{ access_token: string }>(
           "/auth/login",
@@ -54,18 +55,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (
-      email: string,
       password: string,
       fullName: string,
+      email?: string,
+      phoneNumber?: string,
     ) => {
       setLoading(true);
       try {
         await client.post("/auth/register", {
           email,
+          phone_number : phoneNumber,
           password,
           full_name: fullName,
         });
-        await login(email, password);
+        const emailOrPhone = email || phoneNumber;
+        if(emailOrPhone) await login(emailOrPhone, password);
       } finally {
         setLoading(false);
       }
